@@ -1,13 +1,13 @@
+import os
+import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
-from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-origins = [
-    "*" 
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -32,5 +32,9 @@ def get_doctype(form_name: str):
 
 @app.get("/doctype")
 def get_all_doctypes():
-    data=fetch_all_doctype_names()
+    data = fetch_all_doctype_names()
     return {"data": data}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
