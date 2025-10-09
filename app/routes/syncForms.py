@@ -4,6 +4,10 @@ from typing import Dict, Any
 from app.services.fetchDoctype import fetch_doctype
 from app.services.send_submission_to_server import send_submission_to_server
 from app.services.create_schema_hash import create_schema_hash
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 router = APIRouter()
 
@@ -14,9 +18,9 @@ class SubmissionItem(BaseModel):
     schemaHash: str
     status: str  # 'pending' | 'submitted' | 'failed'
 
-SERVER_BASE_URL = 'https://erp.kisanmitra.net'
-DOCTYPE_ENDPOINT = f'{SERVER_BASE_URL}/api/doctype/'
-SUBMISSION_ENDPOINT = f'{SERVER_BASE_URL}/api/submission'
+API_BASE = os.getenv("API_BASE")
+DOCTYPE_ENDPOINT = f'{API_BASE}/api/doctype/'
+SUBMISSION_ENDPOINT = f'{API_BASE}/api/submission'
 
 @router.post("/sync")
 async def sync_data(submission_item: SubmissionItem):
