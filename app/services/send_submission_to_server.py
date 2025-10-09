@@ -2,6 +2,11 @@ from fastapi import HTTPException
 from typing import Dict, Any
 import requests
 from pydantic import BaseModel
+import os
+from typing import Dict, Any
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 class SubmissionItem(BaseModel):
@@ -11,8 +16,8 @@ class SubmissionItem(BaseModel):
     schemaHash: str
     status: str  # 'pending' | 'submitted' | 'failed'
 
-SERVER_BASE_URL = 'https://erp.kisanmitra.net'
-SUBMISSION_ENDPOINT = f'{SERVER_BASE_URL}/api/submission'
+API_BASE = os.getenv("API_BASE")
+SUBMISSION_ENDPOINT = f'{API_BASE}/api/submission'
 
 async def send_submission_to_server(submission_item: SubmissionItem) -> Dict[str, Any]:
     """Send the submission item to the server"""

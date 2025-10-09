@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Dict, Any
-from app.routes.fetchDoctype import fetch_doctype
+from app.services.fetchDoctype import fetch_doctype
 from app.services.send_submission_to_server import send_submission_to_server
 from app.services.create_schema_hash import create_schema_hash
 
