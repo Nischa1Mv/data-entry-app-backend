@@ -1,5 +1,4 @@
-from fastapi import FastAPI,HTTPException
-import requests
+from fastapi import FastAPI
 from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
 from fastapi.middleware.cors import CORSMiddleware
