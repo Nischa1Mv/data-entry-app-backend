@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: data-entry-app-backend
+    env: python
+    buildCommand: pip install -r app/requirements.txt
+    startCommand: cd app && python -m uvicorn main:app --host 0.0.0.0 --port $PORT
+    plan: free
+    region: ohio
+    branch: master
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12
