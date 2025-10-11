@@ -62,7 +62,8 @@ async def submit_single_form(request: Request):
         status_code=500,
         detail={
             "success": False,
-            "error": f"Forced failure for testing form: {submission_item.formName}"
+            "formname": submission_item.formName,
+            "error": f"Forced failure for testing form"
         }
     )
 
