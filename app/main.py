@@ -58,20 +58,20 @@ async def submit_single_form(request: Request):
     submission_item = SubmissionItem(**data)
     
     # Force failure
-    # raise HTTPException(
-    #     status_code=500,
-    #     detail={
-    #         "success": False,
-    #         "formname": submission_item.formName,
-    #         "error": f"Forced failure for testing form"
-    #     }
-    # )
+    raise HTTPException(
+        status_code=500,
+        detail={
+            "success": False,
+            "formname": submission_item.formName,
+            "error": f"Forced failure for testing form"
+        }
+    )
     # Always return success
-    return {
-        "success": True,
-        "message": f"Submitted successfully",
-        "formName": submission_item.formName
-    }
+    # return {
+    #     "success": True,
+    #     "message": f"Submitted successfully",
+    #     "formName": submission_item.formName
+    # }
 
 
 if __name__ == "__main__":
