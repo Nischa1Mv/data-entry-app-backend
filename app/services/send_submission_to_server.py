@@ -17,25 +17,19 @@ class SubmissionItem(BaseModel):
     status: str  # 'pending' | 'submitted' | 'failed'
 
 API_BASE = os.getenv("API_BASE")
-SUBMISSION_ENDPOINT = f'{API_BASE}/api/submission'
+SUBMISSION_ENDPOINT = f'{API_BASE}/api/resource/remove this later'
 
 async def send_submission_to_server(submission_item: SubmissionItem) -> Dict[str, Any]:
     """Send the submission item to the server"""
     try:
-        submission_data = {
-            "id": submission_item.id,
-            "formName": submission_item.formName,
-            "data": submission_item.data,
-            "schemaHash": submission_item.schemaHash,
-            "status": submission_item.status
-        }
+        if(not submission_item):
+            raise HTTPException(status_code=400, detail="No submission item provided")
         
         response = requests.post(
-            SUBMISSION_ENDPOINT,
-            json=submission_data,
+            SUBMISSION_ENDPOINT/{submission_item.formName},
+            json=submission_item.data,
             headers={'Content-Type': 'application/json'}
         )
-        
         if response.status_code == 200:
             return response.json()
         else:

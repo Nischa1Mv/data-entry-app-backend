@@ -1,9 +1,19 @@
 import os
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Dict, Any, Literal
 from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
+from services.send_submission_to_server import send_submission_to_server
+
+class SubmissionItem(BaseModel):
+    id: str
+    formName: str
+    data: Dict[str, Any]
+    schemaHash: str
+    status: Literal['pending', 'submitted', 'failed']
 
 app = FastAPI()
 
@@ -34,6 +44,13 @@ def get_doctype(form_name: str):
 def get_all_doctypes():
     data = fetch_all_doctype_names()
     return {"data": data}
+
+@app.post("/submit")
+async def submit_single_form(request: Request):
+    data = await request.json()   # read JSON body
+    submission_item = SubmissionItem(**data)
+    response = await send_submission_to_server(submission_item)
+    return response
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
