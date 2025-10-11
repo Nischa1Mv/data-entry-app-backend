@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Literal
@@ -45,12 +45,27 @@ def get_all_doctypes():
     data = fetch_all_doctype_names()
     return {"data": data}
 
+# @app.post("/submit")
+# async def submit_single_form(request: Request):
+#     data = await request.json()   # read JSON body
+#     submission_item = SubmissionItem(**data)
+#     response = await send_submission_to_server(submission_item)
+#     return response
+
 @app.post("/submit")
 async def submit_single_form(request: Request):
-    data = await request.json()   # read JSON body
+    data = await request.json()
     submission_item = SubmissionItem(**data)
-    response = await send_submission_to_server(submission_item)
-    return response
+    
+    # Force failure
+    raise HTTPException(
+        status_code=500,
+        detail={
+            "success": False,
+            "error": f"Forced failure for testing form: {submission_item.formName}"
+        }
+    )
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
