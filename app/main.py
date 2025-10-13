@@ -51,9 +51,8 @@ async def submit_single_form(submission_item: SubmissionItem):
     try:
         # getting the doctype
         doctype_data = fetch_doctype(submission_item.formName)
-        
         # creating the hash from the server schema
-        latest_schema_hash = create_schema_hash(doctype_data.get('schema', {}))
+        latest_schema_hash = create_schema_hash(doctype_data)
         
         if latest_schema_hash != submission_item.schemaHash:
             raise HTTPException(
