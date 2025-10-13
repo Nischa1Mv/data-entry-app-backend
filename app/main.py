@@ -1,12 +1,13 @@
 import os
 import uvicorn
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Literal
 from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
 from services.send_submission_to_server import send_submission_to_server
+from services.create_schema_hash import create_schema_hash
 
 class SubmissionItem(BaseModel):
     id: str
@@ -45,34 +46,45 @@ def get_all_doctypes():
     data = fetch_all_doctype_names()
     return {"data": data}
 
-# @app.post("/submit")
-# async def submit_single_form(request: Request):
-#     data = await request.json()   # read JSON body
-#     submission_item = SubmissionItem(**data)
-#     response = await send_submission_to_server(submission_item)
-#     return response
-
 @app.post("/submit")
-async def submit_single_form(request: Request):
-    data = await request.json()
-    submission_item = SubmissionItem(**data)
-    
-    # Force failure
-    raise HTTPException(
-        status_code=500,
-        detail={
-            "success": False,
-            "formname": submission_item.formName,
-            "error": f"Forced failure for testing form"
-        }
-    )
-    # Always return success
-    # return {
-    #     "success": True,
-    #     "message": f"Submitted successfully",
-    #     "formName": submission_item.formName
-    # }
-
+async def submit_single_form(submission_item: SubmissionItem):
+    try:
+        # getting the doctype
+        doctype_data = fetch_doctype(submission_item.formName)
+        
+        # creating the hash from the server schema
+        latest_schema_hash = create_schema_hash(doctype_data.get('schema', {}))
+        
+        if latest_schema_hash != submission_item.schemaHash:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    'success': False,
+                    'error': 'Schema hash mismatch',
+                    'message': 'The form schema has been updated. Please refresh and resubmit.',
+                    'latest_schema_hash': latest_schema_hash,
+                    'schemaHash': submission_item.schemaHash
+                }
+            )
+        else:
+            return {'success': True, 'message': 'Schema hash matches. Submission can proceed.'}
+        
+        # response = send_submission_to_server(submission_item)
+        # return response
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        # Handle other exceptions
+        raise HTTPException(
+            status_code=500,
+            detail={
+                'success': False,
+                'error': 'Internal server error',
+                'message': str(e)
+            }
+        )
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
