@@ -28,6 +28,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+ERP_SYSTEMS = [
+    {"id": 1, "name": "ERP 1", "formCount": 15},
+    {"id": 2, "name": "ERP 2", "formCount": 15},
+    {"id": 3, "name": "ERP 3", "formCount": 15},
+    {"id": 4, "name": "ERP 4", "formCount": 15},
+    {"id": 5, "name": "ERP 5", "formCount": 15},
+    {"id": 6, "name": "ERP 6", "formCount": 15},
+]
+
+@app.get("/api/erp-systems")
+async def get_erp_systems():
+    return ERP_SYSTEMS
+
 @app.get("/")
 def read_root():
     return {"message": "Hello, FastAPI!"}
