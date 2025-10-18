@@ -59,6 +59,12 @@ def get_all_doctypes():
     data = fetch_all_doctype_names()
     return {"data": data}
 
+
+# @app.post("/submit/{form_name}")
+# async def submit_form(form_name: str, data: Dict[str, Any]):
+#     response = await send_submission_to_server(form_name, data)
+#     return response
+
 @app.post("/submit")
 async def submit_single_form(submission_item: SubmissionItem):
     try:
@@ -79,10 +85,8 @@ async def submit_single_form(submission_item: SubmissionItem):
                 }
             )
         else:
-            return {'success': True, 'message': 'Schema hash matches. Submission can proceed.'}
-        
-        # response = send_submission_to_server(submission_item)
-        # return response
+            response = await send_submission_to_server(submission_item.formName, submission_item.data)
+            return response
         
     except HTTPException:
         # Re-raise HTTP exceptions
