@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Literal
@@ -8,6 +8,8 @@ from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
 from services.send_submission_to_server import send_submission_to_server
 from services.create_schema_hash import create_schema_hash
+from middleware.auth_middleware import AuthMiddleware
+from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
 
 class SubmissionItem(BaseModel):
     id: str
@@ -26,6 +28,17 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# Add authentication middleware
+# You can configure which routes to protect by specifying protected_routes
+# If protected_routes is empty or None, all routes will be protected
+app.add_middleware(
+    AuthMiddleware,
+    protected_routes=["/api", "/doctype", "/submit"],  # Only protect these routes
+    # protected_routes=None,  # Uncomment this line to protect ALL routes
+    auth_header="Authorization",
+    token_prefix="Bearer "
 )
 
 ERP_SYSTEMS = [
