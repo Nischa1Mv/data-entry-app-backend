@@ -50,24 +50,24 @@ ERP_SYSTEMS = [
     {"id": 6, "name": "ERP 6", "formCount": 15},
 ]
 
-@app.get("/api/erp-systems")
+@app.get("/api/erp-systems", operation_id="get_erp_systems")
 async def get_erp_systems():
     return ERP_SYSTEMS
 
-@app.get("/")
+@app.get("/", operation_id="health_check")
 def read_root():
     return {"message": "Hello, FastAPI!"}
 
-@app.get("/items/{item_id}")
+@app.get("/items/{item_id}", operation_id="get_item_by_id")
 def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "q": q}
 
-@app.get("/doctype/{form_name}")
+@app.get("/doctype/{form_name}", operation_id="get_doctype_by_name")
 def get_doctype(form_name: str):
     data = fetch_doctype(form_name)
     return {"data": data}
 
-@app.get("/doctype")
+@app.get("/doctype", operation_id="get_all_doctypes")
 def get_all_doctypes():
     data = fetch_all_doctype_names()
     return {"data": data}
@@ -78,7 +78,7 @@ def get_all_doctypes():
 #     response = await send_submission_to_server(form_name, data)
 #     return response
 
-@app.post("/submit")
+@app.post("/submit", operation_id="submit_form_data")
 async def submit_single_form(submission_item: SubmissionItem):
     try:
         # getting the doctype
