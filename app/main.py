@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Literal
@@ -8,6 +8,8 @@ from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
 from services.send_submission_to_server import send_submission_to_server
 from services.create_schema_hash import create_schema_hash
+from middleware.auth_middleware import AuthMiddleware
+from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
 
 class SubmissionItem(BaseModel):
     id: str
@@ -28,6 +30,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add authentication middleware
+# You can configure which routes to protect by specifying protected_routes
+# If protected_routes is empty or None, all routes will be protected
+app.add_middleware(
+    AuthMiddleware,
+    protected_routes=["/api", "/doctype", "/submit"],  # Only protect these routes
+    # protected_routes=None,  # Uncomment this line to protect ALL routes
+    auth_header="Authorization",
+    token_prefix="Bearer "
+)
+
 ERP_SYSTEMS = [
     {"id": 1, "name": "ERP 1", "formCount": 15},
     {"id": 2, "name": "ERP 2", "formCount": 15},
@@ -37,24 +50,24 @@ ERP_SYSTEMS = [
     {"id": 6, "name": "ERP 6", "formCount": 15},
 ]
 
-@app.get("/api/erp-systems")
+@app.get("/api/erp-systems", operation_id="get_erp_systems")
 async def get_erp_systems():
     return ERP_SYSTEMS
 
-@app.get("/")
+@app.get("/", operation_id="health_check")
 def read_root():
     return {"message": "Hello, FastAPI!"}
 
-@app.get("/items/{item_id}")
+@app.get("/items/{item_id}", operation_id="get_item_by_id")
 def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "q": q}
 
-@app.get("/doctype/{form_name}")
+@app.get("/doctype/{form_name}", operation_id="get_doctype_by_name")
 def get_doctype(form_name: str):
     data = fetch_doctype(form_name)
     return {"data": data}
 
-@app.get("/doctype")
+@app.get("/doctype", operation_id="get_all_doctypes")
 def get_all_doctypes():
     data = fetch_all_doctype_names()
     return {"data": data}
@@ -65,7 +78,7 @@ def get_all_doctypes():
 #     response = await send_submission_to_server(form_name, data)
 #     return response
 
-@app.post("/submit")
+@app.post("/submit", operation_id="submit_form_data")
 async def submit_single_form(submission_item: SubmissionItem):
     try:
         # getting the doctype
