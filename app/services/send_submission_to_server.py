@@ -19,7 +19,7 @@ class SubmissionItem(BaseModel):
     status: str  # 'pending' | 'submitted' | 'failed'
 
 API_BASE = os.getenv("API_BASE")
-SUBMISSION_ENDPOINT = f'{API_BASE}/api/resource/testing building material request/'
+SUBMISSION_ENDPOINT = f'{API_BASE}/api/resource/'
 
 async def send_submission_to_server(form_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
     """Send the submission data to the server"""
