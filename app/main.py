@@ -97,16 +97,17 @@ async def submit_single_form(submission_item: SubmissionItem):
                     'schemaHash': submission_item.schemaHash
                 }
             )
-        else:
-            return HTTPException(
-                status_code=200,
-                detail={
-                    'success': True,
-                    'message': 'Schema hash matches. Ready to submit data.'
-                }
-            )
-            # response = await send_submission_to_server(submission_item.formName, submission_item.data)
-            # return response
+        
+        submission_item.data['doctype'] = submission_item.formName
+        response = await send_submission_to_server(submission_item.formName, submission_item.data )
+        return {
+            'success': True,
+            'message': 'Form submitted successfully',
+            'form_name': submission_item.formName,
+            'submission_id': submission_item.id,
+            'data': submission_item.data,
+            'server_response': response
+        }
         
     except HTTPException:
         # Re-raise HTTP exceptions
