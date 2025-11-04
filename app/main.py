@@ -97,8 +97,6 @@ async def submit_single_form(submission_item: SubmissionItem):
                     'schemaHash': submission_item.schemaHash
                 }
             )
-        
-        submission_item.data['doctype'] = submission_item.formName
         response = await send_submission_to_server(submission_item.formName, submission_item.data )
         return {
             'success': True,
