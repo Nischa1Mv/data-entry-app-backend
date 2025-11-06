@@ -62,7 +62,7 @@ def get_doctype(form_name: str):
 
 @app.get("/doctype", operation_id="get_all_doctypes")
 def get_all_doctypes():
-    data = fetch_all_doctype_names()
+    data = fetch_all_doctype_names(limit_start=0, limit_page_length=1000)
     return {"data": data}
 
 #for postman testing
