@@ -55,10 +55,6 @@ async def get_erp_systems():
 def read_root():
     return {"message": "Hello, FastAPI!"}
 
-@app.get("/items/{item_id}", operation_id="get_item_by_id")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
-
 @app.get("/doctype/{form_name}", operation_id="get_doctype_by_name")
 def get_doctype(form_name: str):
     data = fetch_doctype(form_name)
