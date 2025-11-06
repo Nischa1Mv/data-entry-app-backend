@@ -42,12 +42,9 @@ app.add_middleware(
 )
 
 ERP_SYSTEMS = [
-    {"id": 1, "name": "ERP 1", "formCount": 15},
-    {"id": 2, "name": "ERP 2", "formCount": 15},
-    {"id": 3, "name": "ERP 3", "formCount": 15},
-    {"id": 4, "name": "ERP 4", "formCount": 15},
-    {"id": 5, "name": "ERP 5", "formCount": 15},
-    {"id": 6, "name": "ERP 6", "formCount": 15},
+    {"id": 1, "name": "CSA", "formCount": 15},
+    {"id": 2, "name": "Sahajaharam", "formCount": 15},
+    {"id": 3, "name": "FPO Hub", "formCount": 15},
 ]
 
 @app.get("/api/erp-systems", operation_id="get_erp_systems")
