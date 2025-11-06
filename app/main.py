@@ -42,12 +42,9 @@ app.add_middleware(
 )
 
 ERP_SYSTEMS = [
-    {"id": 1, "name": "ERP 1", "formCount": 15},
-    {"id": 2, "name": "ERP 2", "formCount": 15},
-    {"id": 3, "name": "ERP 3", "formCount": 15},
-    {"id": 4, "name": "ERP 4", "formCount": 15},
-    {"id": 5, "name": "ERP 5", "formCount": 15},
-    {"id": 6, "name": "ERP 6", "formCount": 15},
+    {"id": 1, "name": "CSA", "formCount": 15},
+    {"id": 2, "name": "Sahajaharam", "formCount": 15},
+    {"id": 3, "name": "FPO Hub", "formCount": 15},
 ]
 
 @app.get("/api/erp-systems", operation_id="get_erp_systems")
@@ -57,10 +54,6 @@ async def get_erp_systems():
 @app.get("/", operation_id="health_check")
 def read_root():
     return {"message": "Hello, FastAPI!"}
-
-@app.get("/items/{item_id}", operation_id="get_item_by_id")
-def read_item(item_id: int, q: str | None = None):
-    return {"item_id": item_id, "q": q}
 
 @app.get("/doctype/{form_name}", operation_id="get_doctype_by_name")
 def get_doctype(form_name: str):

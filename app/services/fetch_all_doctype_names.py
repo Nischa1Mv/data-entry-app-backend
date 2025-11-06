@@ -25,7 +25,7 @@ def fetch_all_doctype_names() -> List[Dict[str, Any]]:
     """Logs in and fetches all DocType names, excluding those with Link fields."""
     session = login_to_erp()
     response = session.get(
-        f"{API_BASE}/api/resource/DocType",
+        f"{API_BASE}/api/resource/DocType?limit=1000",
         headers={"Content-Type": "application/json"},
         timeout=10,
     )
