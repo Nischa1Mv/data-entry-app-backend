@@ -43,7 +43,7 @@ app.add_middleware(
 
 ERP_SYSTEMS = [
     {"id": 1, "name": "CSA", "formCount": 15},
-    {"id": 2, "name": "Sahajaharam", "formCount": 15},
+    {"id": 2, "name": "Sahaja Aharam", "formCount": 15},
     {"id": 3, "name": "FPO Hub", "formCount": 15},
 ]
 
