@@ -10,6 +10,7 @@ from services.send_submission_to_server import send_submission_to_server
 from services.create_schema_hash import create_schema_hash
 from middleware.auth_middleware import AuthMiddleware
 from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
+from services.fetch_link_options import fetch_link_options
 
 class SubmissionItem(BaseModel):
     id: str
@@ -35,7 +36,7 @@ app.add_middleware(
 # If protected_routes is empty or None, all routes will be protected
 app.add_middleware(
     AuthMiddleware,
-    protected_routes=["/api", "/doctype", "/submit"],  # Only protect these routes
+    protected_routes=["/api", "/doctype", "/link-options", "/submit"],  # Only protect these routes
     # protected_routes=None,  # Uncomment this line to protect ALL routes
     auth_header="Authorization",
     token_prefix="Bearer "
@@ -51,10 +52,6 @@ ERP_SYSTEMS = [
 async def get_erp_systems():
     return ERP_SYSTEMS
 
-@app.get("/", operation_id="health_check")
-def read_root():
-    return {"message": "Hello, FastAPI!"}
-
 @app.get("/doctype/{form_name}", operation_id="get_doctype_by_name")
 def get_doctype(form_name: str):
     data = fetch_doctype(form_name)
@@ -63,6 +60,11 @@ def get_doctype(form_name: str):
 @app.get("/doctype", operation_id="get_all_doctypes")
 def get_all_doctypes():
     data = fetch_all_doctype_names(limit_start=0, limit_page_length=1000)
+    return {"data": data}
+
+@app.get("/link-options/{linked_doctype}", operation_id="get_link_options")
+def get_link_options(linked_doctype: str):
+    data = fetch_link_options(linked_doctype)
     return {"data": data}
 
 #for postman testing
