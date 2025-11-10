@@ -10,7 +10,7 @@ from services.send_submission_to_server import send_submission_to_server
 from services.create_schema_hash import create_schema_hash
 from middleware.auth_middleware import AuthMiddleware
 from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
-from services.fetch_link_options import fetch_link_options
+from services.fetch_link_options import fetch_link_options, fetch_link_options_count
 
 class SubmissionItem(BaseModel):
     id: str
@@ -61,6 +61,12 @@ def get_doctype(form_name: str):
 def get_all_doctypes():
     data = fetch_all_doctype_names(limit_start=0, limit_page_length=1000)
     return {"data": data}
+
+@app.get("/link-options/{linked_doctype}/count", operation_id="get_link_options_count")
+def get_link_options_count(linked_doctype: str):
+    """Get the total count of records for a linked_doctype."""
+    result = fetch_link_options_count(linked_doctype)
+    return result
 
 @app.get("/link-options/{linked_doctype}", operation_id="get_link_options")
 def get_link_options(linked_doctype: str):
