@@ -17,11 +17,12 @@ class SubmissionItem(BaseModel):
     data: Dict[str, Any]
     schemaHash: str
     status: str  # 'pending' | 'submitted' | 'failed'
+    is_submittable: int
 
 API_BASE = os.getenv("API_BASE")
 SUBMISSION_ENDPOINT = f'{API_BASE}/api/resource/'
 
-async def send_submission_to_server(form_name: str, data: Dict[str, Any]) -> Dict[str, Any]:
+async def send_submission_to_server(form_name: str,is_submittable:int, data: Dict[str, Any]) -> Dict[str, Any]:
     """Send the submission data to the server"""
     try:
         if not form_name or not data:
@@ -29,34 +30,48 @@ async def send_submission_to_server(form_name: str, data: Dict[str, Any]) -> Dic
         
         session = login_to_erp()
         
-        endpoint_url = f"{SUBMISSION_ENDPOINT}{form_name}"
+        create_url = f"{SUBMISSION_ENDPOINT}{form_name}"
         
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Expect': ''  # Disable Expect header that might cause 417
+
         }
-        
-        response = session.post(
-            endpoint_url,
-            json=data,
-            headers=headers,
-            timeout=30
-        )
-        
-        if response.status_code == 200:
-            response_data = response.json()
-            return response_data
-        else:   
+
+        create_response = session.post(create_url,json=data,headers=headers,timeout=30)
+        if(create_response.status_code!=200):
             raise HTTPException(
-                status_code=response.status_code,
+                status_code=create_response.status_code,
                 detail={
                     'success': False,
-                    'error': 'Failed to submit data to server',
-                    'status_code': response.status_code,
-                    'response_body': response.text
+                    'error': 'Failed to create record',
+                    'status_code': create_response.status_code,
+                    'response_body': create_response.text
                 }
             )
+        
+        # If is_submittable is 0, only create the record and return
+        if is_submittable == 0:
+            return create_response.json()
+        
+        # If is_submittable is 1, proceed to submit the record
+        doc_name=create_response.json().get("data", {}).get("name")
+
+        submit_url=f"{SUBMISSION_ENDPOINT}{form_name}/{doc_name}?run_method=submit"
+        submit_response = session.post(submit_url,headers=headers,timeout=30)
+        if(submit_response.status_code!=200):
+            raise HTTPException(
+                status_code=submit_response.status_code,
+                detail={
+                    'success': False,
+                    'error': 'Failed to submit record',
+                    'status_code': submit_response.status_code,
+                    'response_body': submit_response.text
+                }
+            )
+        return submit_response.json()
+    
     except requests.exceptions.RequestException as e:
         print(f"ERROR: Network error during submission - {str(e)}")
         raise HTTPException(

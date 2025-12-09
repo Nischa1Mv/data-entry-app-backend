@@ -98,7 +98,7 @@ async def submit_single_form(submission_item: SubmissionItem):
                     'schemaHash': submission_item.schemaHash
                 }
             )
-        response = await send_submission_to_server(submission_item.formName, submission_item.data )
+        response = await send_submission_to_server(submission_item.formName,submission_item.is_submittable,submission_item.data )
         return {
             'success': True,
             'message': 'Form submitted successfully',
