@@ -11,6 +11,7 @@ from services.create_schema_hash import create_schema_hash
 from middleware.auth_middleware import AuthMiddleware
 from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
 from services.fetch_link_options import fetch_link_options, fetch_link_options_count
+from fastapi import Request
 
 class SubmissionItem(BaseModel):
     id: str
@@ -36,8 +37,8 @@ app.add_middleware(
 # If protected_routes is empty or None, all routes will be protected
 app.add_middleware(
     AuthMiddleware,
-    protected_routes=["/api", "/doctype", "/link-options", "/submit"],  # Only protect these routes
-    # protected_routes=None,  # Uncomment this line to protect ALL routes
+    # protected_routes=["/api", "/doctype", "/link-options", "/submit"],  # Only protect these routes
+    protected_routes=["/test"],  # Uncomment this line to protect ALL routes
     auth_header="Authorization",
     token_prefix="Bearer "
 )
@@ -62,16 +63,23 @@ def get_all_doctypes():
     data = fetch_all_doctype_names(limit_start=0, limit_page_length=1000)
     return {"data": data}
 
-@app.get("/link-options/{linked_doctype}/count", operation_id="get_link_options_count")
-def get_link_options_count(linked_doctype: str):
-    """Get the total count of records for a linked_doctype."""
-    result = fetch_link_options_count(linked_doctype)
-    return result
-
 @app.get("/link-options/{linked_doctype}", operation_id="get_link_options")
-def get_link_options(linked_doctype: str):
-    data = fetch_link_options(linked_doctype)
+def get_link_options(linked_doctype: str, request: Request):
+    # Extract all query parameters as dict
+    filters = dict(request.query_params)
+    # Remove FastAPI internal keys if needed (none here)
+    if filters:
+        # Convert string values to appropriate types
+        for k, v in filters.items():
+            if v.isdigit():
+                filters[k] = int(v)
+            elif v.lower() == 'true':
+                filters[k] = 1
+            elif v.lower() == 'false':
+                filters[k] = 0
+    data = fetch_link_options(linked_doctype, filters)
     return {"data": data}
+
 
 #for postman testing
 # @app.post("/submit/{form_name}")
