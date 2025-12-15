@@ -18,6 +18,7 @@ class SubmissionItem(BaseModel):
     data: Dict[str, Any]
     schemaHash: str
     status: Literal['pending', 'submitted', 'failed']
+    is_submittable: int
 
 app = FastAPI()
 
