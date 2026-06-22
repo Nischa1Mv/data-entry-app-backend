@@ -22,75 +22,98 @@ class SubmissionItem(BaseModel):
 API_BASE = os.getenv("API_BASE")
 SUBMISSION_ENDPOINT = f'{API_BASE}/api/resource/'
 
-async def send_submission_to_server(form_name: str,is_submittable:int, data: Dict[str, Any]) -> Dict[str, Any]:
-    """Send the submission data to the server"""
+ERP_HEADERS = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Expect': '',
+}
+
+
+def _extract_erp_error(response: requests.Response) -> str | None:
+    """Extract a clean user-facing error message from a Frappe error response."""
     try:
-        if not form_name or not data:
-            raise HTTPException(status_code=400, detail="Form name and data are required")
-        
-        create_url = f"{SUBMISSION_ENDPOINT}{form_name}"
+        body = response.json()
+        # _server_messages has the cleanest user-facing text
+        raw = body.get('_server_messages')
+        if raw:
+            msgs = json.loads(raw)
+            if isinstance(msgs, list) and msgs:
+                first = msgs[0]
+                if isinstance(first, str):
+                    first = json.loads(first)
+                msg = first.get('message') if isinstance(first, dict) else None
+                if msg:
+                    return msg
+        # Fall back to exception field (strip the exception class prefix)
+        exception = body.get('exception', '')
+        if exception:
+            return exception.split(': ', 1)[-1].strip() or exception
+        return body.get('exc_type')
+    except Exception:
+        return None
 
-        headers = {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'Expect': ''  # Disable Expect header that might cause 417
-        }
 
-        # Retry once on 403 (expired session)
-        for attempt in range(2):
-            session = login_to_erp()
-            create_response = session.post(create_url, json=data, headers=headers, timeout=30)
-            if create_response.status_code == 403 and attempt == 0:
-                invalidate_session()
-                continue
-            break
+def _erp_post_with_retry(session_fn, url: str, *, json_body=None, timeout=30) -> requests.Response:
+    """POST to ERP, retrying once on 403 with a fresh session."""
+    for attempt in range(2):
+        session = session_fn()
+        response = session.post(url, json=json_body, headers=ERP_HEADERS, timeout=timeout)
+        if response.status_code == 403 and attempt == 0:
+            invalidate_session()
+            continue
+        return response
+    return response  # unreachable but satisfies type checkers
+
+
+async def send_submission_to_server(form_name: str, is_submittable: int, data: Dict[str, Any]) -> Dict[str, Any]:
+    if not form_name or not data:
+        raise HTTPException(status_code=400, detail="Form name and data are required")
+
+    try:
+        create_response = _erp_post_with_retry(
+            login_to_erp,
+            f"{SUBMISSION_ENDPOINT}{form_name}",
+            json_body=data,
+        )
 
         if create_response.status_code != 200:
+            erp_error = _extract_erp_error(create_response)
+            print(f"ERP create error [{create_response.status_code}]: {create_response.text[:500]}")
             raise HTTPException(
                 status_code=create_response.status_code,
                 detail={
                     'success': False,
-                    'error': 'Failed to create record',
-                    'status_code': create_response.status_code,
-                    'response_body': create_response.text
+                    'error': erp_error or 'Failed to create record',
+                    'response_body': create_response.text,
                 }
             )
 
-        # If is_submittable is 0, only create the record and return
         if is_submittable == 0:
             return create_response.json()
 
-        # If is_submittable is 1, proceed to submit the record
         doc_name = create_response.json().get("data", {}).get("name")
-
-        submit_url = f"{SUBMISSION_ENDPOINT}{form_name}/{doc_name}?run_method=submit"
-
-        for attempt in range(2):
-            session = login_to_erp()
-            submit_response = session.post(submit_url, headers=headers, timeout=30)
-            if submit_response.status_code == 403 and attempt == 0:
-                invalidate_session()
-                continue
-            break
+        submit_response = _erp_post_with_retry(
+            login_to_erp,
+            f"{SUBMISSION_ENDPOINT}{form_name}/{doc_name}?run_method=submit",
+        )
 
         if submit_response.status_code != 200:
+            erp_error = _extract_erp_error(submit_response)
+            print(f"ERP submit error [{submit_response.status_code}]: {submit_response.text[:500]}")
             raise HTTPException(
                 status_code=submit_response.status_code,
                 detail={
                     'success': False,
-                    'error': 'Failed to submit record',
-                    'status_code': submit_response.status_code,
-                    'response_body': submit_response.text
+                    'error': erp_error or 'Failed to submit record',
+                    'response_body': submit_response.text,
                 }
             )
+
         return submit_response.json()
-    
+
     except requests.exceptions.RequestException as e:
-        print(f"ERROR: Network error during submission - {str(e)}")
+        print(f"Network error during submission: {e}")
         raise HTTPException(
             status_code=500,
-            detail={
-                'success': False,
-                'error': f'Network error during submission: {str(e)}'
-            }
+            detail={'success': False, 'error': f'Network error: {str(e)}'}
         )
