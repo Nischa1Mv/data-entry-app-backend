@@ -11,6 +11,10 @@ ERP_PASS = os.getenv("ERP_PASS")
 
 SESSION_COOKIES = None
 
+def invalidate_session():
+    global SESSION_COOKIES
+    SESSION_COOKIES = None
+
 def login_to_erp() -> requests.Session:
     """Logs in once and returns a session with cookies."""
     global SESSION_COOKIES

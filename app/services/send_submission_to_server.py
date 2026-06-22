@@ -6,7 +6,7 @@ import os
 import json
 from typing import Dict, Any
 from dotenv import load_dotenv
-from .login import login_to_erp
+from .login import login_to_erp, invalidate_session
 
 load_dotenv()
 
@@ -28,19 +28,24 @@ async def send_submission_to_server(form_name: str,is_submittable:int, data: Dic
         if not form_name or not data:
             raise HTTPException(status_code=400, detail="Form name and data are required")
         
-        session = login_to_erp()
-        
         create_url = f"{SUBMISSION_ENDPOINT}{form_name}"
-        
+
         headers = {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
             'Expect': ''  # Disable Expect header that might cause 417
-
         }
 
-        create_response = session.post(create_url,json=data,headers=headers,timeout=30)
-        if(create_response.status_code!=200):
+        # Retry once on 403 (expired session)
+        for attempt in range(2):
+            session = login_to_erp()
+            create_response = session.post(create_url, json=data, headers=headers, timeout=30)
+            if create_response.status_code == 403 and attempt == 0:
+                invalidate_session()
+                continue
+            break
+
+        if create_response.status_code != 200:
             raise HTTPException(
                 status_code=create_response.status_code,
                 detail={
@@ -50,17 +55,25 @@ async def send_submission_to_server(form_name: str,is_submittable:int, data: Dic
                     'response_body': create_response.text
                 }
             )
-        
+
         # If is_submittable is 0, only create the record and return
         if is_submittable == 0:
             return create_response.json()
-        
-        # If is_submittable is 1, proceed to submit the record
-        doc_name=create_response.json().get("data", {}).get("name")
 
-        submit_url=f"{SUBMISSION_ENDPOINT}{form_name}/{doc_name}?run_method=submit"
-        submit_response = session.post(submit_url,headers=headers,timeout=30)
-        if(submit_response.status_code!=200):
+        # If is_submittable is 1, proceed to submit the record
+        doc_name = create_response.json().get("data", {}).get("name")
+
+        submit_url = f"{SUBMISSION_ENDPOINT}{form_name}/{doc_name}?run_method=submit"
+
+        for attempt in range(2):
+            session = login_to_erp()
+            submit_response = session.post(submit_url, headers=headers, timeout=30)
+            if submit_response.status_code == 403 and attempt == 0:
+                invalidate_session()
+                continue
+            break
+
+        if submit_response.status_code != 200:
             raise HTTPException(
                 status_code=submit_response.status_code,
                 detail={
