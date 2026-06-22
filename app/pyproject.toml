@@ -85,6 +85,9 @@ dependencies = [
 [tool.poetry]
 package-mode = false
 
+[tool.poetry.requires-plugins]
+poetry-plugin-export = ">=1.8"
+
 [dependency-groups]
 dev = [
     "mypy (>=2.1.0,<3.0.0)",
