@@ -7,6 +7,7 @@ from typing import Dict, Any, Literal
 from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
 from services.send_submission_to_server import send_submission_to_server
+from services.login import user_exists_in_erp
 from services.create_schema_hash import create_schema_hash
 from middleware.auth_middleware import AuthMiddleware
 from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
@@ -37,7 +38,7 @@ app.add_middleware(
 # If protected_routes is empty or None, all routes will be protected
 app.add_middleware(
     AuthMiddleware,
-    protected_routes=["/api", "/doctype", "/link-options", "/submit"],  # Only protect these routes
+    protected_routes=["/api", "/doctype", "/link-options", "/submit", "/user"],  # Only protect these routes
     # protected_routes=None,  # Uncomment this line to protect ALL routes
     auth_header="Authorization",
     token_prefix="Bearer "
@@ -48,6 +49,13 @@ ERP_SYSTEMS = [
     {"id": 2, "name": "Sahaja Aharam", "formCount": 0},
     {"id": 3, "name": "FPO Hub", "formCount": 0},
 ]
+
+@app.get("/user/erp-status", operation_id="get_erp_status")
+async def get_erp_status(request: Request):
+    email = getattr(request.state, "user_email", None)
+    exists = user_exists_in_erp(email) if email else False
+    return {"erp_user": exists, "email": email}
+
 
 @app.get("/api/erp-systems", operation_id="get_erp_systems")
 async def get_erp_systems():
@@ -64,14 +72,22 @@ def get_all_doctypes():
     return {"data": data}
 
 @app.get("/link-options/{linked_doctype}/count", operation_id="get_link_options_count")
-def get_link_options_count(linked_doctype: str):
+def get_link_options_count(
+    linked_doctype: str,
+    filter_field: str | None = None,
+    filter_value: str | None = None,
+):
     """Get the total count of records for a linked_doctype."""
-    result = fetch_link_options_count(linked_doctype)
+    result = fetch_link_options_count(linked_doctype, filter_field=filter_field, filter_value=filter_value)
     return result
 
 @app.get("/link-options/{linked_doctype}", operation_id="get_link_options")
-def get_link_options(linked_doctype: str):
-    data = fetch_link_options(linked_doctype)
+def get_link_options(
+    linked_doctype: str,
+    filter_field: str | None = None,
+    filter_value: str | None = None,
+):
+    data = fetch_link_options(linked_doctype, filter_field=filter_field, filter_value=filter_value)
     return {"data": data}
 
 #for postman testing
@@ -81,13 +97,13 @@ def get_link_options(linked_doctype: str):
 #     return response
 
 @app.post("/submit", operation_id="submit_form_data")
-async def submit_single_form(submission_item: SubmissionItem):
+async def submit_single_form(submission_item: SubmissionItem, request: Request):
     try:
         # getting the doctype
         doctype_data = fetch_doctype(submission_item.formName)
         # creating the hash from the server schema
         latest_schema_hash = create_schema_hash(doctype_data)
-        
+
         if latest_schema_hash != submission_item.schemaHash:
             raise HTTPException(
                 status_code=400,
@@ -99,7 +115,13 @@ async def submit_single_form(submission_item: SubmissionItem):
                     'schemaHash': submission_item.schemaHash
                 }
             )
-        response = await send_submission_to_server(submission_item.formName,submission_item.is_submittable,submission_item.data )
+        user_email = getattr(request.state, "user_email", None)
+        response = await send_submission_to_server(
+            submission_item.formName,
+            submission_item.is_submittable,
+            submission_item.data,
+            user_email=user_email,
+        )
         return {
             'success': True,
             'message': 'Form submitted successfully',
