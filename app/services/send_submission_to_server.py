@@ -6,7 +6,7 @@ import os
 import json
 from typing import Dict, Any
 from dotenv import load_dotenv
-from .login import login_to_erp, invalidate_session
+from .login import login_to_erp, invalidate_session, get_user_erp_session, invalidate_user_session
 
 load_dotenv()
 
@@ -53,25 +53,44 @@ def _extract_erp_error(response: requests.Response) -> str | None:
         return None
 
 
-def _erp_post_with_retry(session_fn, url: str, *, json_body=None, timeout=30) -> requests.Response:
+def _erp_post_with_retry(session_fn, invalidate_fn, url: str, *, json_body=None, timeout=30) -> requests.Response:
     """POST to ERP, retrying once on 403 with a fresh session."""
     for attempt in range(2):
         session = session_fn()
         response = session.post(url, json=json_body, headers=ERP_HEADERS, timeout=timeout)
         if response.status_code == 403 and attempt == 0:
-            invalidate_session()
+            invalidate_fn()
             continue
         return response
     return response  # unreachable but satisfies type checkers
 
 
-async def send_submission_to_server(form_name: str, is_submittable: int, data: Dict[str, Any]) -> Dict[str, Any]:
+async def send_submission_to_server(
+    form_name: str,
+    is_submittable: int,
+    data: Dict[str, Any],
+    user_email: str | None = None,
+) -> Dict[str, Any]:
     if not form_name or not data:
         raise HTTPException(status_code=400, detail="Form name and data are required")
 
+    if user_email:
+        try:
+            get_user_erp_session(user_email)  # warm cache; raises on ERP permission/user issues
+            session_fn = lambda: get_user_erp_session(user_email)
+            invalidate_fn = lambda: invalidate_user_session(user_email)
+        except Exception as e:
+            print(f"[ERP] Per-user session failed for {user_email}: {e}. Falling back to service account.")
+            session_fn = login_to_erp
+            invalidate_fn = invalidate_session
+    else:
+        session_fn = login_to_erp
+        invalidate_fn = invalidate_session
+
     try:
         create_response = _erp_post_with_retry(
-            login_to_erp,
+            session_fn,
+            invalidate_fn,
             f"{SUBMISSION_ENDPOINT}{form_name}",
             json_body=data,
         )
@@ -93,7 +112,8 @@ async def send_submission_to_server(form_name: str, is_submittable: int, data: D
 
         doc_name = create_response.json().get("data", {}).get("name")
         submit_response = _erp_post_with_retry(
-            login_to_erp,
+            session_fn,
+            invalidate_fn,
             f"{SUBMISSION_ENDPOINT}{form_name}/{doc_name}?run_method=submit",
         )
 

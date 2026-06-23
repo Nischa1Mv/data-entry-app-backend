@@ -81,13 +81,13 @@ def get_link_options(linked_doctype: str):
 #     return response
 
 @app.post("/submit", operation_id="submit_form_data")
-async def submit_single_form(submission_item: SubmissionItem):
+async def submit_single_form(submission_item: SubmissionItem, request: Request):
     try:
         # getting the doctype
         doctype_data = fetch_doctype(submission_item.formName)
         # creating the hash from the server schema
         latest_schema_hash = create_schema_hash(doctype_data)
-        
+
         if latest_schema_hash != submission_item.schemaHash:
             raise HTTPException(
                 status_code=400,
@@ -99,7 +99,13 @@ async def submit_single_form(submission_item: SubmissionItem):
                     'schemaHash': submission_item.schemaHash
                 }
             )
-        response = await send_submission_to_server(submission_item.formName,submission_item.is_submittable,submission_item.data )
+        user_email = getattr(request.state, "user_email", None)
+        response = await send_submission_to_server(
+            submission_item.formName,
+            submission_item.is_submittable,
+            submission_item.data,
+            user_email=user_email,
+        )
         return {
             'success': True,
             'message': 'Form submitted successfully',
