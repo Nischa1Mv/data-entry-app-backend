@@ -142,3 +142,13 @@ def invalidate_user_session(email: str):
     _user_sessions.pop(email, None)
     with sqlite3.connect(_DB_PATH) as conn:
         conn.execute("DELETE FROM user_erp_credentials WHERE email = ?", (email,))
+
+
+def user_exists_in_erp(email: str) -> bool:
+    admin = login_to_erp()
+    resp = admin.get(
+        f"{API_BASE}/api/resource/User/{email}",
+        headers=_ERP_JSON_HEADER,
+        timeout=10,
+    )
+    return resp.status_code == 200

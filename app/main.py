@@ -7,6 +7,7 @@ from typing import Dict, Any, Literal
 from services.fetchDoctype import fetch_doctype
 from services.fetch_all_doctype_names import fetch_all_doctype_names
 from services.send_submission_to_server import send_submission_to_server
+from services.login import user_exists_in_erp
 from services.create_schema_hash import create_schema_hash
 from middleware.auth_middleware import AuthMiddleware
 from utils.auth_utils import get_current_token, require_auth, get_current_user_info, get_current_user_email
@@ -37,7 +38,7 @@ app.add_middleware(
 # If protected_routes is empty or None, all routes will be protected
 app.add_middleware(
     AuthMiddleware,
-    protected_routes=["/api", "/doctype", "/link-options", "/submit"],  # Only protect these routes
+    protected_routes=["/api", "/doctype", "/link-options", "/submit", "/user"],  # Only protect these routes
     # protected_routes=None,  # Uncomment this line to protect ALL routes
     auth_header="Authorization",
     token_prefix="Bearer "
@@ -48,6 +49,13 @@ ERP_SYSTEMS = [
     {"id": 2, "name": "Sahaja Aharam", "formCount": 0},
     {"id": 3, "name": "FPO Hub", "formCount": 0},
 ]
+
+@app.get("/user/erp-status", operation_id="get_erp_status")
+async def get_erp_status(request: Request):
+    email = getattr(request.state, "user_email", None)
+    exists = user_exists_in_erp(email) if email else False
+    return {"erp_user": exists, "email": email}
+
 
 @app.get("/api/erp-systems", operation_id="get_erp_systems")
 async def get_erp_systems():
