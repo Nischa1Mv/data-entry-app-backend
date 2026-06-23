@@ -72,14 +72,22 @@ def get_all_doctypes():
     return {"data": data}
 
 @app.get("/link-options/{linked_doctype}/count", operation_id="get_link_options_count")
-def get_link_options_count(linked_doctype: str):
+def get_link_options_count(
+    linked_doctype: str,
+    filter_field: str | None = None,
+    filter_value: str | None = None,
+):
     """Get the total count of records for a linked_doctype."""
-    result = fetch_link_options_count(linked_doctype)
+    result = fetch_link_options_count(linked_doctype, filter_field=filter_field, filter_value=filter_value)
     return result
 
 @app.get("/link-options/{linked_doctype}", operation_id="get_link_options")
-def get_link_options(linked_doctype: str):
-    data = fetch_link_options(linked_doctype)
+def get_link_options(
+    linked_doctype: str,
+    filter_field: str | None = None,
+    filter_value: str | None = None,
+):
+    data = fetch_link_options(linked_doctype, filter_field=filter_field, filter_value=filter_value)
     return {"data": data}
 
 #for postman testing
